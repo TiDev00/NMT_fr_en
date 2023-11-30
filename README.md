@@ -57,3 +57,4 @@ The NMT model architecture is based on the Transformer framework, comprising an 
 3. Prepare datasets following the configuration guidelines.
 4. Update the configuration file with desired settings.
 5. Run the training script using the updated configuration.
+6. Test the translation system
