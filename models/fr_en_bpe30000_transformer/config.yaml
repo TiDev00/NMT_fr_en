@@ -1,0 +1,88 @@
+
+name: "fr_en_bpe30000_transformer"
+
+data:
+    src: "fr"                                          # src language 
+    trg: "en"                                          # target language
+    train: "/content/drive/MyDrive/nmt_projet2/fr-en-baseline//train.30000.bpe"                           # training data
+    dev:   "/content/drive/MyDrive/nmt_projet2/fr-en-baseline//dev.30000.bpe"                             # development data for validation
+    test:  "/content/drive/MyDrive/nmt_projet2/fr-en-baseline//test.30000.bpe"                            # test data for testing final model
+    level: "bpe"                                                      # segmentation level: either "word", "bpe" or "char"
+    lowercase: False                                                  # filter out longer sentences from training (src+trg)
+    max_sent_length: 100                                              # Extend to longer sentences.
+    src_vocab: "/content/drive/MyDrive/nmt_projet2/fr-en-baseline/joint.30000bpe.vocab"                                     # if specified, load a vocabulary from this file
+    trg_vocab: "/content/drive/MyDrive/nmt_projet2/fr-en-baseline/joint.30000bpe.vocab"                                     # one token per line, line number is index
+
+testing:
+    beam_size: 5                                                      # size of the beam for beam search
+    alpha: 1.0                                                        # length penalty for beam search
+    sacrebleu:                      # sacrebleu options
+        remove_whitespace: True     # `remove_whitespace` option in sacrebleu.corpus_chrf() function (defalut: True)
+        tokenize: "none"            # `tokenize` option in sacrebleu.corpus_bleu() function (options include: "none" (use for already tokenized test data), "13a" (default minimal tokenizer), "intl" which mostly does punctuation and unicode, etc) 
+
+
+training:
+    #load_model: "/content/drive/MyDrive/nmt_projet2/fr-en-baseline//models/fr_en_bpe30000_transformer/1.ckpt"         # load a pre-trained model from this checkpoint
+    random_seed: 42                                                   # set this seed to make training deterministic
+    optimizer: "adam"                                                 # choices: "sgd", "adam", "adadelta", "adagrad", "rmsprop", default is SGD
+    normalization: "tokens"                                           # loss normalization of a tokens, default: "batch" (by number of sequences in batch), other options: "tokens" (by number of tokens in batch), "none" (don't normalize, sum up loss)
+    adam_betas: [0.9, 0.999]                                          # beta parameters for Adam. These are the defaults. Typically these are different for Transformer models.
+    scheduling: "plateau"                                             # Alternative: try switching from plateau to Noam scheduling
+    patience: 3                                                       # For plateau: decrease learning rate by decrease_factor if validation score has not improved for this many validation rounds.
+    #learning_rate_factor: 1.0                                        # factor for Noam scheduler (used with Transformer)
+    #learning_rate_warmup: 1000                                       # warmup steps for Noam scheduler (used with Transformer)
+    decrease_factor: 0.7                                              # decrease factor for Adam scheduler
+    loss: "crossentropy"                                              
+    learning_rate: 0.0005                                             # initial learning rate, default: 3.0e-4
+    learning_rate_min: 0.000003                                       # stop learning when learning rate is reduced below this threshold, default: 1.0e-8
+    weight_decay: 0.0                                                 # l2 regularization, default: 0
+    label_smoothing: 0.1                                              # label smoothing: reference tokens will have 1-label_smoothing probability instead of 1, rest of probability mass is uniformly distributed over the rest of the vocabulary, default: 0.0 (off)
+    batch_size: 4096                                                  # mini-batch size as number of sentences (when batch_type is "sentence"; default) or total number of tokens (when batch_type is "token")
+    batch_type: "token"                                               # create batches with sentences ("sentence", default) or tokens ("token")
+    #eval_batch_size: 3600                                            # mini-batch size for evaluation (see batch_size above)
+    #eval_batch_type: "token"                                         # create batches with sentences ("sentence", default) or tokens ("token")
+    #batch_multiplier: 1                                              # increase the effective batch size with values >1 to batch_multiplier*batch_size without increasing memory consumption by making updates only every batch_multiplier batches
+    early_stopping_metric: "loss"                                     # when a new high score on this metric is achieved, a checkpoint is written, "eval_metric" (default) is maximized, when "loss" or "ppl" is minimized
+    epochs: 30                                                        # train for this many epochs. Around 30 is sufficient to check if its working at all
+    validation_freq: 5000                                             # validate after this many updates (number of mini-batches), default: 1000
+    logging_freq: 200                                                 # log the training progress after this many updates, default: 100
+    eval_metric: "bleu"                                               # validation metric, default: "bleu", other options: "chrf", "token_accuracy", "sequence_accuracy"
+    model_dir: "/content/drive/MyDrive/nmt_projet2/fr-en-baseline//models/fr_en_bpe30000_transformer"                  # directory where models and validation results are stored, required
+    overwrite: False                                                  # overwrite existing model directory, default: False. Do not set to True unless for debugging!
+    shuffle: True                                                     # shuffle the training data, default: True
+    use_cuda: True                                                    # use CUDA for acceleration on GPU, required. Set to False when working on CPU.
+    max_output_length: 100                                            # maximum output length for decoding, default: None. If set to None, allow sentences of max 1.5*src length
+    print_valid_sents: [0, 1, 2]                                      # print this many validation sentences during each validation run, default: [0, 1, 2]
+    keep_last_ckpts: 2                                                # keep this number of checkpoints
+
+model:
+    initializer: "xavier"                                             # initializer for all trainable weights (xavier, zeros, normal, uniform)
+    bias_initializer: "zeros"                                         # initializer for bias terms (xavier, zeros, normal, uniform)
+    init_gain: 1.0                                                    # gain for Xavier initializer (default: 1.0)
+    embed_initializer: "xavier"                                       # initializer for embeddings (xavier, zeros, normal, uniform)
+    embed_init_gain: 1.0                                              # gain for Xavier initializer for embeddings (default: 1.0)
+    tied_embeddings: True                                             # tie src and trg embeddings, only applicable if vocabularies are the same, default: False
+    tied_softmax: True                                                
+    encoder:
+        type: "transformer"                                           # encoder type: "recurrent" for LSTM or GRU, or "transformer" for a Transformer
+        num_layers: 6                                                 # number of layers
+        num_heads: 8                                                  # number of transformer heads
+        embeddings:
+            embedding_dim: 512                                        # size of embeddings (for Transformer set equal to hidden_size)
+            scale: True                                               # scale the embeddings by sqrt of their size, default: False
+            dropout: 0.2                                              # apply dropout to the inputs to the RNN, default: 0.0
+        hidden_size: 512                                              # size of hidden layer; must be divisible by number of heads
+        ff_size: 2048                                                 # size of position-wise feed-forward layer
+        dropout: 0.3                                                  # apply dropout to the inputs to the RNN, default: 0.0
+    decoder:
+        type: "transformer"                                           
+        num_layers: 6
+        num_heads: 8                                                  
+        attention: "bahdanau"                                         # attention mechanism, choices: "bahdanau" (MLP attention), "luong" (bilinear attention), default: "bahdanau"
+        embeddings:
+            embedding_dim: 512                                        
+            scale: True
+            dropout: 0.2
+        hidden_size: 512                                              
+        ff_size: 2048                                                 
+        dropout: 0.3

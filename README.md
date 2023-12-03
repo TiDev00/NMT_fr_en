@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project focuses on developing a Neural Machine Translation (NMT) system using JoeyNMT v1 to translate French sentences into English. The model is trained on the WMT14 parallel corpus from Europarl v7 for French-English translation. Specialized corpora such as newsdev2013 and newstest2013 for French-English translation are used for development and testing.
+This project focuses on developing a Neural Machine Translation (NMT) system using JoeyNMT v1 to translate French sentences into English. The model is trained on the WMT14 parallel corpus from [Europarl v7](https://www.statmt.org/europarl/v7/fr-en.tgz) for French-English translation. Specialized corpora such as newsdev2013 and newstest2013 for French-English translation are used for development and testing.
 
 ## Model Description
 
